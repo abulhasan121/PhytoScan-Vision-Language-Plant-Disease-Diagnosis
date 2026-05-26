@@ -15,28 +15,45 @@ The model achieves:
 
 # Project Motivation
 
-Accurate crop disease diagnosis in agricultural settings remains difficult because:
-- Expert agronomists are not always available
-- Laboratory testing is expensive and slow
-- Traditional CNN models fail under real field conditions
-- Most classifiers require thousands of labeled images per disease
+Accurate disease diagnosis is a major challenge in precision agriculture because disease pressure can vary significantly across fields, cultivars, environments, and growth stages. Early and reliable disease detection is essential for site-specific fungicide application, yield protection, and reducing unnecessary chemical inputs. However, field-scale disease scouting still relies heavily on manual inspection by trained agronomists, which is labor-intensive, time-consuming, and difficult to scale across large production systems.
 
-Controlled greenhouse datasets often produce unrealistic performance estimates because:
-- Lighting is uniform
-- Leaves are centered
-- Background clutter is removed
-- Disease symptoms are exaggerated
+Most existing deep learning approaches for plant disease diagnosis are based on traditional CNN classifiers trained on controlled greenhouse datasets. While these models often report very high accuracy, they frequently fail under real agricultural field conditions where images contain:
 
-Real field photography introduces:
-- Shadows
-- Motion blur
-- Occlusion
-- Multiple leaves
-- Variable lighting
-- Background vegetation
+Variable lighting and shadows
+Soil and canopy background clutter
+Multiple overlapping leaves
+Motion blur and focus variation
+Different cameras, angles, and environmental conditions
+Large differences among cultivars and growth stages
 
-PhytoScan addresses this problem by adapting CLIP into an agricultural vision-language diagnosis framework capable of transferring to real field imagery without requiring full retraining.
+A key limitation of conventional CNN classifiers is that they treat disease diagnosis as a fixed closed-set classification problem. Each disease is represented only as a numeric label, forcing the model to memorize visual patterns from large labeled datasets. This creates major scalability challenges for precision agriculture because:
 
+New diseases require retraining the classifier
+Rare diseases suffer from insufficient labeled data
+Models transfer poorly across crops and production environments
+Farm-specific retraining is often necessary
+
+PhytoScan addresses these limitations by using a vision-language model (VLM) architecture instead of a traditional CNN classifier. Rather than predicting fixed numeric classes, the system maps both leaf images and natural language disease descriptions into a shared semantic embedding space. Disease diagnosis becomes a similarity-matching problem between visual symptoms and descriptive agronomic text.
+
+This vision-language formulation is particularly valuable for precision agriculture because it enables:
+
+Stronger generalization across diverse field environments
+Reduced dependence on massive labeled agricultural datasets
+Easier adaptation to new crops and disease conditions
+More interpretable predictions linked to biological symptom descriptions
+Integration with multimodal agricultural sensing systems
+
+The novelty of PhytoScan lies in adapting a large-scale vision-language foundation model (CLIP) specifically for agricultural disease diagnosis using:
+
+SimCLR self-supervised domain adaptation on unlabeled leaf imagery
+Parameter-efficient LoRA fine-tuning
+Metadata-enriched disease prompt engineering
+Explainable saliency-based visualization
+Real-field evaluation on unseen PlantDoc imagery
+
+Unlike traditional plant disease classifiers optimized only for laboratory datasets, PhytoScan was designed with real precision agriculture deployment in mind. The model operates on standard RGB imagery captured from smartphones, handheld field cameras, or UAV platforms, making it compatible with modern precision agriculture workflows. For example, UAV-based canopy stress monitoring can first identify suspicious field regions, after which PhytoScan can provide plant-level disease diagnosis from close-range imagery for targeted verification and management decisions.
+
+By combining foundation vision-language models with agricultural domain adaptation, PhytoScan demonstrates a scalable framework for next-generation AI-assisted crop health monitoring systems capable of supporting precision scouting, disease surveillance, and site-specific crop protection strategies under real production conditions.
 ---
 
 # System Overview
