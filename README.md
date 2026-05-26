@@ -1,332 +1,542 @@
-# 🌿 PhytoScan — Vision-Language Plant Disease Diagnosis
+# PhytoScan — Vision-Language Plant Disease Diagnosis
 
-[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.10+-orange.svg)](https://pytorch.org)
-[![CLIP](https://img.shields.io/badge/OpenAI-CLIP-purple.svg)](https://github.com/openai/CLIP)
-[![LoRA](https://img.shields.io/badge/PEFT-LoRA-green.svg)](https://arxiv.org/abs/2106.09685)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+**Developed by Shah Md Abul Hasan · University of Georgia**
 
-> **PhytoScan fine-tunes CLIP ViT-B/32 with SimCLR pre-training and LoRA
-> adapters to diagnose 89 crop diseases from leaf photos, achieving 68.6%
-> accuracy on real field images.**
+PhytoScan is a vision-language plant disease diagnosis system built on top of OpenAI CLIP, SimCLR self-supervised learning, and LoRA parameter-efficient fine-tuning. The model diagnoses 89 crop disease conditions directly from leaf photographs while remaining lightweight enough for practical deployment.
 
-**Author:** Shah Md Abul Hasan · University of Georgia
+Unlike traditional CNN classifiers trained as closed-set classification systems, PhytoScan treats disease diagnosis as a semantic vision-language matching problem. Instead of predicting fixed numeric classes, the system compares a leaf image against descriptive disease captions written in natural language.
 
----
-
-## The Problem
-
-Crop disease identification in the field currently requires either a trained
-agronomist or sending samples to a lab — both slow and expensive at scale.
-Existing deep learning tools require thousands of labeled images per disease
-class to train, and CNN classifiers trained on controlled datasets fail on
-real field photography.
-
-**PhytoScan addresses this by treating disease classification as a
-vision-language matching problem** — matching a leaf image against 89
-natural language disease descriptions — rather than training a traditional
-classification head. This enables zero-shot transfer to real field images
-without retraining.
+The model achieves:
+- 68.6% accuracy on PlantDoc real-field images
+- 47.1% Macro F1 across unseen field conditions
+- 49.5% improvement over standard zero-shot CLIP
 
 ---
 
-## What It Does
+# Project Motivation
 
-Upload a leaf photograph → get the top-5 disease predictions with confidence
-scores and a saliency map showing exactly where on the leaf the model focused.
+Accurate crop disease diagnosis in agricultural settings remains difficult because:
+- Expert agronomists are not always available
+- Laboratory testing is expensive and slow
+- Traditional CNN models fail under real field conditions
+- Most classifiers require thousands of labeled images per disease
 
+Controlled greenhouse datasets often produce unrealistic performance estimates because:
+- Lighting is uniform
+- Leaves are centered
+- Background clutter is removed
+- Disease symptoms are exaggerated
+
+Real field photography introduces:
+- Shadows
+- Motion blur
+- Occlusion
+- Multiple leaves
+- Variable lighting
+- Background vegetation
+
+PhytoScan addresses this problem by adapting CLIP into an agricultural vision-language diagnosis framework capable of transferring to real field imagery without requiring full retraining.
+
+---
+
+# System Overview
+
+The system operates as a retrieval-style vision-language pipeline.
+
+Instead of learning a traditional classification head, PhytoScan:
+1. Encodes disease descriptions into text embeddings
+2. Encodes leaf images into visual embeddings
+3. Computes cosine similarity between them
+4. Returns the highest matching disease conditions
+
+This enables:
+- Flexible disease descriptions
+- Natural language extensibility
+- Improved generalization
+- Explainable predictions through saliency maps
+
+---
+
+# Inference Pipeline
+
+```text
+Leaf Image
+      ↓
+CLIP Visual Encoder
+      ↓
+Visual Embedding
+      ↓
+Cosine Similarity
+      ↓
+Disease Caption Embeddings
+      ↓
+Ranked Predictions
+      ↓
+Top-5 Diseases + Confidence Scores + Saliency Map
 ```
-Input  : leaf photo (JPG/PNG, any resolution)
-Output : crop name · disease name · confidence %
-         + saliency heatmap highlighting diseased tissue
-```
-
-**Supported crops:** Apple · Tomato · Potato · Corn · Maize · Grape ·
-Pepper · Strawberry · Peach · Cherry · Soybean · Raspberry · Squash ·
-Coffee · Black Pepper + more (89 total disease conditions)
 
 ---
 
-## Field Performance
+# Supported Crops
 
-Evaluated on **PlantDoc** — 236 real field images across 27 disease classes,
-completely unseen during training. This is the most important benchmark because
-it measures generalization to actual farm conditions, not controlled lab imagery.
+PhytoScan supports disease diagnosis across multiple crop species including:
 
-### Results — PlantDoc Test Set
+- Apple
+- Tomato
+- Potato
+- Corn
+- Maize
+- Grape
+- Pepper
+- Strawberry
+- Peach
+- Cherry
+- Soybean
+- Raspberry
+- Squash
+- Coffee
+- Black Pepper
+
+and additional disease conditions for a total of 89 crop-disease combinations.
+
+---
+
+# Field Performance
+
+The model was evaluated on PlantDoc, a challenging real-field benchmark containing images never seen during training.
+
+Unlike controlled datasets, PlantDoc includes:
+- Natural lighting variation
+- Background clutter
+- Occlusion
+- Real field disease presentation
+
+This benchmark measures actual field generalization rather than laboratory performance.
+
+## PlantDoc Test Results
 
 | Model | Accuracy | Macro F1 |
-|-------|----------|----------|
-| CLIP zero-shot — simple label | 14.4% | 7.0% |
-| CLIP zero-shot — expert prompt | 19.1% | 10.6% |
-| CLIP zero-shot — symptom description | 17.8% | 7.9% |
+|---|---|---|
+| CLIP zero-shot — simple labels | 14.4% | 7.0% |
+| CLIP zero-shot — expert prompts | 19.1% | 10.6% |
+| CLIP zero-shot — symptom prompts | 17.8% | 7.9% |
 | CLIP zero-shot — prompt ensemble | 18.2% | 8.5% |
-| **PhytoScan (this work)** | **68.6%** | **47.1%** |
+| **PhytoScan** | **68.6%** | **47.1%** |
 
-**Improvement over best zero-shot CLIP: +49.5% accuracy**
+### Key Observation
 
-The 47.1% Macro F1 reflects uneven class representation in PlantDoc —
-common diseases (Apple Scab, Tomato Late Blight) score higher while rare
-classes with few test images pull the macro average down. Per-class F1
-on well-represented diseases is substantially higher.
+The strongest improvement came from:
+- Domain adaptation via SimCLR
+- Agricultural prompt engineering
+- LoRA fine-tuning
+- Metadata-enriched disease descriptions
+
+The model achieved:
+- +49.5% accuracy improvement over standard zero-shot CLIP
+- Strong transfer to unseen field environments
+- Robustness to real agricultural image conditions
 
 ---
 
-### Training Convergence
+# Training Dynamics
 
-PhytoScan converges rapidly after SimCLR domain pre-training.
-PlantDoc accuracy jumps from 36% → 60% in just 3 epochs — confirming
-that the SSL warm-start provides agronomically relevant initialization.
+PhytoScan converged rapidly after self-supervised domain adaptation.
 
-| Epoch | Train Loss | Val Acc | PlantDoc Acc | PlantDoc F1 |
-|-------|-----------|---------|--------------|-------------|
+PlantDoc accuracy increased from:
+- 36.0% → 60.6% within 3 epochs
+- Final best accuracy reached at epoch 6
+
+This confirms that SimCLR pretraining provided agriculturally relevant initialization before supervised fine-tuning.
+
+## Training History
+
+| Epoch | Train Loss | Validation Accuracy | PlantDoc Accuracy | PlantDoc F1 |
+|---|---|---|---|---|
 | 1 | 1.0998 | 92.3% | 36.0% | 20.0% |
 | 2 | 0.2107 | 94.2% | 52.5% | 33.3% |
 | 3 | 0.1504 | 94.8% | 60.6% | 33.9% |
 | 5 | 0.0857 | 95.4% | 66.9% | 45.4% |
-| **6** | **0.0610** | **95.3%** | **68.6%** | **47.1%** ← **best** |
-| 12 | 0.0153 | 95.8% | 66.9% | 45.2% ← early stop |
+| **6** | **0.0610** | **95.3%** | **68.6%** | **47.1%** |
+| 12 | 0.0153 | 95.8% | 66.9% | 45.2% |
 
-Best checkpoint at **epoch 6**. Early stopping at epoch 12 (patience = 6).
-LeafNet validation accuracy kept rising while PlantDoc generalization
-plateaued — evidence of distribution gap between controlled training
-images and real field photography.
+### Early Stopping Behavior
 
----
+LeafNet validation accuracy continued increasing while PlantDoc performance plateaued.
 
-## Why This Matters for Precision Agriculture
-
-### 1. No Per-Farm Retraining
-Traditional disease classifiers need thousands of labeled images per
-class per environment. PhytoScan uses natural language disease descriptions
-as classifiers — adding a new disease means writing a caption, not
-collecting new training data.
-
-### 2. Explainable Predictions for Agronomists
-Saliency maps show exactly which tissue the model focused on.
-Incorrect predictions still highlight disease-relevant regions
-(lesions, discoloration) — errors are expert-level misclassification
-between similar diseases, not background confusion.
-
-```
-✅ Correct:   model focuses on dark scab lesions → predicts Apple Scab
-❌ Incorrect: model focuses on brown lesion → predicts Early Blight
-              instead of Late Blight (visually similar)
-```
-
-This is the right failure mode for a field tool — the model is uncertain
-about disease subtype, not about whether a plant is diseased at all.
-
-### 3. Compute-Efficient Deployment
-Only **2,949K parameters (1.91% of CLIP)** are fine-tuned via LoRA.
-The frozen backbone can be shared across multiple agricultural models
-without storing separate full-model checkpoints per crop.
-
-### 4. Connects to UAV and Multispectral Workflows
-PhytoScan operates on standard RGB leaf images — compatible with photos
-captured by DJI Mavic, Phantom, or any field camera. Results can be
-combined with UAV-based canopy monitoring to flag individual plants
-for ground-level disease verification.
+This suggests:
+- Distribution shift between greenhouse and field imagery
+- Overfitting risk on controlled datasets
+- Importance of real-field evaluation
 
 ---
 
-## Technical Approach
+# Why This Matters for Precision Agriculture
 
-### Three-Stage Pipeline
+## 1. No Per-Farm Retraining
 
-```
-Stage 1 — Domain Adaptation (SimCLR)
-──────────────────────────────────────
-60,000 unlabeled leaf images
-Self-supervised contrastive learning
-Teaches CLIP to be invariant to:
-  • Lighting variation (field vs greenhouse)
-  • Camera angle and crop
-  • Motion blur and focus variation
-  • Weather and shadow effects
-SSL loss: 6.01 → 3.37 (1 epoch, 60k images)
+Traditional CNN disease classifiers require:
+- Thousands of labeled images
+- Farm-specific retraining
+- New classifier heads for new diseases
 
-        ↓  adapted visual encoder
+PhytoScan instead uses:
+- Natural language disease descriptions
+- Semantic embedding matching
+- Flexible zero-shot transfer
 
-Stage 2 — Parameter-Efficient Fine-tuning (LoRA)
-──────────────────────────────────────────────────
-CLIP ViT-B/32 backbone — 154.2M parameters — all frozen
-LoRA adapters injected into MLP layers only
-  • 48 LoRA tensors (c_fc + c_proj × 12 blocks × 2)
-  • Rank r=32, scaling alpha=64
-  • 2,949K trainable parameters (1.91%)
-Label smoothing=0.1, AMP, AdamW lr=5e-5
-
-Training: 108,000 LeafNet images · 12 epochs · ~76 min total
-
-        ↓  fine-tuned model
-
-Stage 3 — Zero-shot Inference
-───────────────────────────────
-89 metadata-enriched disease captions → text embeddings
-Leaf image → visual embedding
-Cosine similarity → ranked predictions
-No threshold, no calibration, no post-processing
-```
-
-### Why LoRA in MLP Layers Only
-
-Injecting LoRA into attention projection layers (q, k, v) interferes with
-PyTorch's scaled dot-product attention fast-path and disrupts CLIP's
-learned cross-modal alignment. MLP-only injection:
-
-- Preserves visual-language alignment from CLIP pretraining
-- Adapts feed-forward representations to disease feature space
-- Passes all 48/48 gradient checks at initialization
-
-### Why Metadata-Enriched Prompts
-
-CLIP was pretrained on 400M internet image-text pairs — it responds to
-descriptive, contextual captions rather than short labels. Symptom
-descriptions activate the relevant parts of CLIP's text representation
-space, producing more discriminative class embeddings.
-
-```python
-# Poor (14.4% accuracy)
-"a photo of apple leaf with scab"
-
-# Better (19.1% accuracy)
-"apple leaf infected with Venturia inaequalis fungal pathogen"
-
-# Best for fine-tuning
-"A field photograph of an apple leaf infected with scab.
- Visible symptoms include: olive-green to dark brown velvety
- lesions on leaves. Agricultural crop disease detection image."
-```
-
-### Saliency Maps Without Gradient Flow
-
-Standard GradCAM fails on LoRA-CLIP because frozen layers block gradient
-propagation to intermediate activations (measured gradient max = 0.0000
-at the last transformer block despite the score having a valid grad_fn).
-
-PhytoScan uses **activation norm saliency** — L2 norm of 49 patch token
-activations from the last ViT transformer block, reshaped from 7×7 to
-224×224. No backward pass required, stable across all inputs.
+Adding a new disease becomes:
+- Writing a caption
+- Not collecting a new dataset
 
 ---
 
-## Dataset
+## 2. Explainable Predictions
 
-### LeafNet — Training
+The system produces saliency maps showing:
+- Which leaf regions influenced the prediction
+- Which lesions or discolorations were used
+- Whether the model focused on disease tissue
+
+Correct predictions typically focus on:
+- Lesions
+- Chlorosis
+- Necrosis
+- Fungal spots
+
+Incorrect predictions generally remain biologically meaningful:
+- Confusion occurs between visually similar diseases
+- Not between disease and background
+
+This is an important property for agricultural decision support systems.
+
+---
+
+## 3. Parameter-Efficient Deployment
+
+Only 2.95 million parameters are trainable through LoRA adapters.
+
+The original CLIP backbone remains frozen.
+
+Advantages:
+- Smaller checkpoints
+- Faster fine-tuning
+- Lower GPU memory usage
+- Shared reusable backbone
+
+Only 1.91% of CLIP parameters were updated during training.
+
+---
+
+## 4. Integration with UAV Pipelines
+
+PhytoScan operates on standard RGB imagery and can integrate with:
+- DJI drone workflows
+- Smartphone field scouting
+- UAV canopy monitoring
+- Multispectral disease detection systems
+
+Potential agricultural workflow:
+1. UAV detects canopy stress
+2. Ground-level RGB image captured
+3. PhytoScan diagnoses disease
+4. Agronomist verifies treatment decision
+
+---
+
+# Technical Architecture
+
+The system follows a three-stage training pipeline.
+
+---
+
+## Stage 1 — SimCLR Domain Adaptation
+
+Unlabeled leaf imagery was used for self-supervised contrastive learning.
+
+The objective was to adapt CLIP's visual encoder to agricultural image distributions before supervised fine-tuning.
+
+### SimCLR Objectives
+
+The model learns invariance to:
+- Lighting variation
+- Camera angle
+- Motion blur
+- Focus variation
+- Weather conditions
+- Background clutter
+
+### SSL Training
 
 | Property | Value |
-|----------|-------|
+|---|---|
+| Images | 60,000 |
+| Loss Reduction | 6.01 → 3.37 |
+| Epochs | 1 |
+| Training Time | ~38 min |
+
+---
+
+## Stage 2 — LoRA Fine-Tuning
+
+The CLIP ViT-B/32 backbone remained frozen.
+
+LoRA adapters were inserted into:
+- MLP feed-forward layers only
+
+### LoRA Configuration
+
+| Parameter | Value |
+|---|---|
+| Backbone | CLIP ViT-B/32 |
+| Total Parameters | 154.2M |
+| Trainable Parameters | 2.95M |
+| Trainable Fraction | 1.91% |
+| Rank (r) | 32 |
+| Alpha | 64 |
+
+### Why MLP-Only LoRA
+
+Injecting LoRA into attention projections disrupted:
+- CLIP visual-language alignment
+- PyTorch attention optimization paths
+
+MLP-only injection:
+- Preserved pretrained alignment
+- Improved agricultural adaptation
+- Passed all gradient integrity checks
+
+---
+
+## Stage 3 — Vision-Language Inference
+
+The final system performs zero-shot style retrieval.
+
+### Inference Process
+
+```text
+Leaf Image
+    ↓
+Visual Embedding
+    ↓
+Cosine Similarity
+    ↓
+Disease Caption Embeddings
+    ↓
+Ranked Predictions
+```
+
+No:
+- Calibration
+- Threshold tuning
+- Post-processing
+- Specialized classifier head
+
+was required.
+
+---
+
+# Prompt Engineering
+
+Prompt quality significantly influenced CLIP performance.
+
+Simple labels underperformed because CLIP was pretrained on descriptive internet text.
+
+## Example Prompt Evolution
+
+### Poor Prompt
+
+```text
+"a photo of apple leaf with scab"
+```
+
+### Better Prompt
+
+```text
+"apple leaf infected with Venturia inaequalis fungal pathogen"
+```
+
+### Best Prompt Style
+
+```text
+"A field photograph of an apple leaf infected with scab.
+Visible symptoms include olive-green to dark brown lesions.
+Agricultural crop disease detection image."
+```
+
+Metadata-enriched prompts improved semantic separation between disease classes.
+
+---
+
+# Saliency Map Generation
+
+Traditional GradCAM methods failed because:
+- CLIP backbone layers remained frozen
+- Intermediate gradients vanished
+- Backward propagation produced near-zero activations
+
+PhytoScan instead uses:
+- Activation norm saliency
+
+### Method
+
+1. Extract final ViT patch token activations
+2. Compute L2 norm per patch
+3. Reshape from 7×7 → 224×224
+4. Generate heatmap without backward propagation
+
+Advantages:
+- Stable
+- No gradient dependency
+- Works consistently with frozen CLIP
+
+---
+
+# Dataset Information
+
+## LeafNet — Training Dataset
+
+| Property | Value |
+|---|---|
 | Images | 121,337 |
-| Classes | 89 disease conditions |
-| Crops covered | 15+ species |
-| Largest class | Coffee healthy — 13,288 images |
-| Smallest class | Pepper leaf spot — 46 images |
-| Train / Val split | 108,000 / 12,000 |
+| Classes | 89 |
+| Crops | 15+ |
+| Largest Class | Coffee healthy — 13,288 |
+| Smallest Class | Pepper leaf spot — 46 |
+| Train / Validation Split | 108k / 12k |
 | Source | HuggingFace `enalis/LeafNet` |
 
-### PlantDoc — Test Only
+---
+
+## PlantDoc — Field Evaluation Dataset
 
 | Property | Value |
-|----------|-------|
+|---|---|
 | Images | 236 |
 | Classes | 27 |
-| Image type | Real field photography |
-| Used in training | Never |
-| Source | `github.com/pratikkayal/PlantDoc-Dataset` |
+| Image Type | Real field photography |
+| Used in Training | No |
+| Source | PlantDoc Dataset |
 
 ---
 
-## Installation
+# Installation
+
+## Clone Repository
 
 ```bash
 git clone https://github.com/abulhasan121/PhytoScan.git
 cd PhytoScan
+```
 
+## Install Dependencies
+
+```bash
 pip install -r requirements.txt
+```
 
-# Download PlantDoc for evaluation
+## Download PlantDoc
+
+```bash
 git clone https://github.com/pratikkayal/PlantDoc-Dataset data/plantdoc
 ```
 
 ---
 
-## Usage
+# Running the Project
 
-### Run Full Pipeline
+## Full Training Pipeline
 
 ```bash
-# SimCLR → LoRA fine-tuning → Gradio demo
 python src/train.py
-
-# Skip SimCLR if checkpoint exists
-python src/train.py --skip-ssl
-
-# Launch Gradio demo from saved checkpoint
-python src/train.py --demo-only
 ```
 
-### Gradio Demo
+## Skip SimCLR Stage
 
 ```bash
-python app.py
-# Launches at http://localhost:7860
-# Set share=True for public URL
+python src/train.py --skip-ssl
 ```
 
-### Python API
+## Launch Demo Only
 
-```python
-import torch
-import open_clip
-from src.config  import CFG
-from src.lora    import apply_lora
-from src.prompts import make_meta_prompt
-from src.gradcam import CLIPGradCAM
-
-# Load model
-model, _, preprocess = open_clip.create_model_and_transforms(
-    CFG['clip_model'], pretrained=CFG['pretrained'])
-model.visual = apply_lora(model.visual, r=CFG['lora_r'], alpha=CFG['lora_alpha'])
-
-ckpt = torch.load('results/checkpoints/best_model.pt')
-model.load_state_dict(ckpt['model_state'])
-model.eval()
-
-# Predict
-from PIL import Image
-import torch.nn.functional as F
-
-img    = preprocess(Image.open('leaf.jpg').convert('RGB')).unsqueeze(0)
-gradcam = CLIPGradCAM(model)
-heatmap = gradcam.generate(img.squeeze(0))  # (224, 224) saliency map
+```bash
+python src/train.py --demo-only
 ```
 
 ---
 
-## Repository Structure
+# Gradio Interface
 
+Launch the web interface:
+
+```bash
+python app.py
 ```
+
+Then open:
+
+```text
+http://localhost:7860
+```
+
+The interface supports:
+- Leaf image upload
+- Top-5 disease predictions
+- Confidence visualization
+- Saliency heatmaps
+- Architecture overview
+
+---
+
+# Python API Example
+
+```python
+import torch
+import open_clip
+
+from src.config import CFG
+from src.lora import apply_lora
+from src.gradcam import CLIPGradCAM
+
+model, _, preprocess = open_clip.create_model_and_transforms(
+    CFG['clip_model'],
+    pretrained=CFG['pretrained']
+)
+
+model.visual = apply_lora(
+    model.visual,
+    r=CFG['lora_r'],
+    alpha=CFG['lora_alpha']
+)
+
+checkpoint = torch.load('results/checkpoints/best_model.pt')
+
+model.load_state_dict(checkpoint['model_state'])
+model.eval()
+```
+
+---
+
+# Repository Structure
+
+```text
 PhytoScan/
 ├── README.md
-├── app.py                    ← Gradio app (Diagnose · Architecture ·
-│                               Disease Classes · About)
+├── app.py
 ├── requirements.txt
 ├── .gitignore
 │
 ├── src/
-│   ├── config.py             ← CFG dict — all hyperparameters
-│   ├── prompts.py            ← 4 prompt strategies + caption parser
-│   ├── lora.py               ← LoRALinear + apply_lora
-│   ├── simclr.py             ← SimCLR augmentation + NT-Xent loss
-│   ├── dataset.py            ← LeafNetDataset + PlantDocDataset +
-│   │                           PlantDoc→LeafNet class mapping
-│   ├── evaluate.py           ← build_class_embeddings + evaluate fns
-│   ├── gradcam.py            ← Activation norm saliency map
-│   └── train.py              ← Full pipeline (argparse)
+│   ├── config.py
+│   ├── prompts.py
+│   ├── lora.py
+│   ├── simclr.py
+│   ├── dataset.py
+│   ├── evaluate.py
+│   ├── gradcam.py
+│   └── train.py
 │
 ├── notebooks/
-│   └── PhytoScan_full.ipynb  ← Complete Colab notebook
+│   └── PhytoScan_full.ipynb
 │
 └── results/
     └── figures/
@@ -338,43 +548,61 @@ PhytoScan/
 
 ---
 
-## Limitations and Field Deployment Considerations
+# Limitations and Deployment Considerations
 
-| Limitation | Implication for Field Use |
-|------------|--------------------------|
-| 68.6% PlantDoc accuracy | Suitable for triage / flag-for-inspection workflows, not final diagnosis |
-| 7×7 saliency resolution | Region-level attribution only — not pixel-level lesion mapping |
-| Single leaf close-up | Does not work on canopy-level or whole-plant imagery |
-| 89 fixed disease classes | Cannot detect novel diseases without retraining |
-| RGB only | No multispectral or thermal integration |
-| Class imbalance in training | Rare diseases (< 50 training images) perform worse |
+| Limitation | Field Implication |
+|---|---|
+| 68.6% accuracy | Suitable for triage, not final diagnosis |
+| 7×7 saliency resolution | Region-level explanation only |
+| Single leaf input | Cannot process canopy-scale imagery |
+| Fixed 89 disease classes | Cannot detect unknown diseases |
+| RGB only | No multispectral integration |
+| Class imbalance | Rare diseases perform worse |
 
-**Recommended use case:** First-pass screening tool integrated with a
-human-in-the-loop verification workflow. Flag high-confidence detections
-for agronomist confirmation; route low-confidence or multi-disease
-predictions for lab testing.
+### Recommended Deployment Strategy
+
+PhytoScan is best used as:
+- A first-pass field screening tool
+- Agronomist decision support
+- UAV follow-up diagnosis
+- Human-in-the-loop disease verification
+
+Not as:
+- Fully autonomous diagnosis
+- Laboratory replacement
+- Regulatory decision system
 
 ---
 
-## Experimental Setup
+# Experimental Setup
 
 | Component | Value |
-|-----------|-------|
-| GPU | NVIDIA L4 · 24GB VRAM |
-| Framework | PyTorch 2.10.0+cu128 · OpenCLIP |
-| SSL training | 1 epoch · 60k images · ~38 min |
-| Fine-tuning | 12 epochs (stopped early) · ~76 min |
-| Inference speed | ~50ms per image (T4 GPU) |
-| Checkpoint size | ~357 MB (LoRA weights only: ~12 MB) |
+|---|---|
+| GPU | NVIDIA L4 — 24 GB VRAM |
+| Framework | PyTorch 2.10 + OpenCLIP |
+| SSL Training | 1 epoch · 60k images |
+| Fine-Tuning | 12 epochs |
+| Inference Speed | ~50 ms/image |
+| Full Checkpoint Size | ~357 MB |
+| LoRA Weights Only | ~12 MB |
 
 ---
 
-## Citation
+# Related Projects
+
+| Project | Description |
+|---|---|
+| AutoWeedMap | SAM-guided weedy rice detection from UAV imagery |
+| AgriScholar | Agricultural RAG system for scientific literature |
+| PhytoScan | Vision-language plant disease diagnosis |
+
+---
+
+# Citation
 
 ```bibtex
-@misc{physoscan2025,
-  title   = {PhytoScan: Domain-Adaptive Vision-Language Model
-              for Plant Disease Diagnosis via SimCLR and LoRA},
+@misc{phytoscan2025,
+  title   = {PhytoScan: Domain-Adaptive Vision-Language Model for Plant Disease Diagnosis via SimCLR and LoRA},
   author  = {Hasan, Shah Md Abul},
   year    = {2025},
   url     = {https://github.com/abulhasan121/PhytoScan}
@@ -383,18 +611,19 @@ predictions for lab testing.
 
 ---
 
-## Related Projects
+# Author
 
-| Project | Description |
-|---------|-------------|
-| [AutoWeedMap](https://github.com/abulhasan121/AutoWeedMap) | Zero-click weedy rice detection from multispectral UAV imagery using SAM + NDVI guidance |
-| [AgriScholar](https://github.com/abulhasan121/AgriScholar) | Semantic search across agricultural research papers using RAG + ChromaDB + Claude API |
-| **PhytoScan** | This project |
+**Shah Md Abul Hasan**
+
+Built with:
+- OpenCLIP
+- PyTorch
+- LoRA
+- SimCLR
+- Gradio
 
 ---
 
-## License
+# License
 
-MIT — see [LICENSE](LICENSE)
-
-**Author:** Shah Md Abul Hasan · University of Georgia
+MIT License
